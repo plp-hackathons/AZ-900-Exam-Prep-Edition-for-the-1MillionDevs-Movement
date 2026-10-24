@@ -3,9 +3,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AZ-900 Quiz Coach (Unofficial)</title>
 <style>
-:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mu:#5d6577;--ac:#0f6cbd;--ok:#12805c;--no:#c4314b;--bd:#dde1ea}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151c;--card:#1c212c;--tx:#e9ecf3;--mu:#9aa3b6;--ac:#5aa9f0;--ok:#3ecf9a;--no:#ff7a90;--bd:#2d3444}}
-:root[data-theme="dark"]{--bg:#12151c;--card:#1c212c;--tx:#e9ecf3;--mu:#9aa3b6;--ac:#5aa9f0;--ok:#3ecf9a;--no:#ff7a90;--bd:#2d3444}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#ffffff;--card:#faf8f5;--tx:#1f1b16;--mu:#6b6258;--ac:#b4531a;--ok:#1a7f4b;--no:#b42318;--bd:#e7e1d8}
+:root[data-theme="dark"]{--bg:#141210;--card:#1d1a17;--tx:#f3eee8;--mu:#a89e92;--ac:#f0a06b;--ok:#4cc38a;--no:#ff8a7a;--bd:#332e28}
 *{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:680px;margin:0 auto;padding:20px 16px 40px}
@@ -68,7 +67,7 @@ const Q=[
 const app=document.getElementById("app");
 let S;
 const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-const foot='<footer>Unofficial study tool. Not affiliated with or endorsed by Microsoft. All questions are original and based on the public AZ-900 skills outline.</footer>';
+const foot='<footer><button style="width:auto;display:inline-block" onclick="theme()">Switch light / dark</button><br>Unofficial study tool. Not affiliated with or endorsed by Microsoft. All questions are original and based on the public AZ-900 skills outline.</footer>';
 function load(){try{return JSON.parse(localStorage.getItem('az9')||'{}')}catch(e){return {}}}
 function save(o){try{localStorage.setItem('az9',JSON.stringify(o))}catch(e){}}
 function rec(id,ok){const o=load();const s=o[id]||[0,0];s[0]++;if(ok)s[1]++;o[id]=s;save(o)}
@@ -76,9 +75,27 @@ function prog(){const o=load(),ids=Object.keys(o).filter(i=>Q[i]);if(!ids.length
 const weak=ids.filter(i=>o[i][1]/o[i][0]<0.7).map(Number);
 const rows=D.map((d,k)=>{let a=0,c=0;ids.forEach(i=>{if(Q[i][0]==k){a+=o[i][0];c+=o[i][1]}});if(!a)return '';const p=Math.round(c/a*100);return '<div><b>'+d+'</b> <span class="mu">'+p+'% over '+a+' answers</span><div class="bar"><i style="width:'+p+'%"></i></div></div>'}).join('');
 return '<h2>Your readiness so far</h2><p class="mu">Saved on this device only.</p>'+rows+(weak.length?'<button class="pri" onclick="start(-1,['+weak+'])">Drill my '+weak.length+' weak spots</button>':'')+'<hr style="border:0;border-top:1px solid var(--bd);margin:14px 0">'}
+const K="az900coach.v1";
+let P={q:{},h:[]};
+try{const r=localStorage.getItem(K);if(r)P=JSON.parse(r)}catch(e){}
+function persist(){try{localStorage.setItem(K,JSON.stringify(P))}catch(e){}}
+function rec(id,ok){const s=P.q[id]||{c:0,w:0};ok?s.c++:s.w++;s.l=ok?1:0;P.q[id]=s;persist()}
+function save(p){P.h.push(p);P.h=P.h.slice(-10);persist()}
+function weakIds(){return Object.keys(P.q).filter(k=>P.q[k].l===0).map(Number)}
+function resetP(){P={q:{},h:[]};persist();home()}
+function tracker(){
+ const seen=Object.keys(P.q);
+ if(!seen.length)return "";
+ const ok=seen.filter(k=>P.q[k].l===1).length,pct=Math.round(ok/Q.length*100),w=weakIds();
+ let h='<div class="why"><b>Your readiness: '+pct+'%</b> <span class="mu">('+ok+' of '+Q.length+' questions mastered, based on your latest answer to each)</span>'+
+ D.map((d,i)=>{const ids=Q.map((q,n)=>n).filter(n=>Q[n][0]==i);const m=ids.filter(n=>P.q[n]&&P.q[n].l===1).length;const p=Math.round(m/ids.length*100);return '<div style="margin-top:8px"><span class="mu">'+d+' '+p+'%</span><div class="bar"><i style="width:'+p+'%"></i></div></div>'}).join("")+
+ (P.h.length?'<div class="mu">Recent sessions: '+P.h.join("% → ")+'%</div>':'')+'</div>';
+ if(w.length)h+='<button class="pri" onclick="start(-1,weakIds())">Practice my '+w.length+' weak questions</button>';
+ return h+'<button onclick="resetP()">Reset my progress</button>';
+}
 function home(){
- app.innerHTML='<div class="card"><h1>AZ-900 Quiz Coach</h1><p class="mu">Unofficial practice for Azure Fundamentals. Instant explanations for every answer, then a readiness score by topic.</p>'+
- prog()+'<button class="pri" onclick="start(-1)">All topics ('+Q.length+' questions)</button>'+
+ app.innerHTML='<button onclick="hub()">&larr; Study modes</button><div class="card"><h1>Smart Quiz</h1><p class="mu">Unofficial practice for Azure Fundamentals. Instant explanations for every answer, then a readiness score by topic.</p>'+
+ prog()+''+tracker()+'<button class="pri" onclick="start(-1)">All topics ('+Q.length+' questions)</button>'+
  D.map((d,i)=>'<button onclick="start('+i+')">'+d+' <span class="mu">('+Q.filter(q=>q[0]==i).length+')</span></button>').join("")+'</div>'+foot;
 }
 function start(d,list){
@@ -89,14 +106,16 @@ function question(){
  const id=S.ids[S.i],q=Q[id];S.ord=sh([0,1,2,3]);S.done=false;
  app.innerHTML='<div class="top"><span>Question '+(S.i+1)+' of '+S.ids.length+'</span><span>'+S.res.filter(r=>r.ok).length+' correct</span></div>'+
  '<div class="bar"><i style="width:'+(S.i/S.ids.length*100)+'%"></i></div>'+
- '<div class="card"><span class="tag">'+D[q[0]]+'</span><h2>'+q[1]+'</h2>'+(q[5]?'<button onclick="hint(this)">Show trigger-word hint</button><div id="hn"></div>':'')+'<div id="opts">'+
+ '<div class="card"><span class="tag">'+D[q[0]]+'</span><h2>'+q[1]+'</h2>'+(HT(id)?'<button onclick="hint(this)">Show trigger-word hint</button><div id="hn"></div>':'')+'<div id="opts">'+
  S.ord.map((o,k)=>'<button onclick="pick('+k+')">'+q[2][o]+'</button>').join("")+'</div><div id="fb"></div></div>'+foot;
 }
-function hint(b){document.getElementById("hn").innerHTML='<div class="why"><b>Hint:</b> '+Q[S.ids[S.i]][5]+'</div>';b.remove()}
+const H=["IaaS + guest OS: you manage everything above the hypervisor.","Stops buying servers, pays monthly = OpEx. Buying = CapEx.","Automatically adds and removes = elasticity. Deploying quickly = agility.","Own data centre + cloud together = hybrid.","Stays accessible despite failures = high availability.","Just sign in, install and manage nothing = SaaS.","Pay only for what you use = consumption-based.","Runs when triggered, billed per execution = serverless.","Separate datacenters inside one region = availability zones.","Logical container for related resources = resource group.","Unstructured data, images, video = Blob Storage.","Private network between Azure resources = Virtual Network.","Runs in response to events, no servers to manage = Functions.","Globally distributed NoSQL = Cosmos DB.","Private, not over the public internet = ExpressRoute.","Identity, sign-in, MFA = Microsoft Entra ID.","Enforce rules about what is allowed = Azure Policy.","Prevent accidental deletion = resource lock.","Track spending and budgets = Cost Management.","Estimate cost before deploying = Pricing calculator.","Metrics and logs = Azure Monitor.","Personalised recommendations = Azure Advisor.","Manage on-premises and other clouds from Azure = Azure Arc.","Group costs by department, label resources = tags."];
+function HT(i){return Q[i][5]||H[i]||""}
+function hint(b){document.getElementById("hn").innerHTML='<div class="why"><b>Hint:</b> '+HT(S.ids[S.i])+'</div>';b.remove()}
 function pick(k){
  if(S.done)return;S.done=true;
  const id=S.ids[S.i],q=Q[id],ok=S.ord[k]==q[3];
- S.res.push({id,ok});rec(id,ok);
+ S.res.push({id,ok});rec(id,ok);rec(id,ok);
  const b=document.querySelectorAll("#opts button");
  b.forEach((el,n)=>{if(S.ord[n]==q[3])el.classList.add("ok");else if(n==k)el.classList.add("no")});
  const last=S.i==S.ids.length-1;
@@ -105,7 +124,7 @@ function pick(k){
 }
 function next(){S.i++;S.i<S.ids.length?question():results()}
 function results(){
- const tot=S.res.filter(r=>r.ok).length,pct=Math.round(tot/S.res.length*100);
+ const tot=S.res.filter(r=>r.ok).length,pct=Math.round(tot/S.res.length*100);save(pct);
  const by=D.map((d,i)=>{const r=S.res.filter(x=>Q[x.id][0]==i);return{d,n:r.length,c:r.filter(x=>x.ok).length}}).filter(x=>x.n);
  const label=pct>=80?"Looking exam-ready. Keep sharpening.":pct>=60?"Getting close. Focus on the weak topics below.":"Keep going. Revise the topics below, then retry.";
  const weak=by.slice().sort((a,b)=>a.c/a.n-b.c/b.n).filter(x=>x.c<x.n);
@@ -116,5 +135,28 @@ function results(){
  (miss.length?'<button class="pri" onclick="start(0,'+JSON.stringify(miss.map(r=>r.id))+')">Retry missed questions</button>':'')+
  '<button onclick="home()">Back to topics</button>'+foot;
 }
-home();
+function theme(){const r=document.documentElement,d=r.dataset.theme==="dark"?"light":"dark";r.dataset.theme=d;try{localStorage.setItem("az900theme",d)}catch(e){}}
+try{const t=localStorage.getItem("az900theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+P.f=P.f||{};
+function hub(){app.innerHTML='<div class="card"><h1>AZ-900 Study Coach</h1><p class="mu">Choose how you want to revise today.</p><button onclick="home()"><b>Smart Quiz</b><br><span class="mu">Practice questions, instant explanations, readiness by topic.</span></button><button onclick="flash()"><b>Flashcard Coach</b><br><span class="mu">Build memory: recall, reveal, rate. Missed cards return sooner.</span></button><button onclick="buddy()"><b>Study Buddy</b><br><span class="mu">Concepts in simple words, with African examples and Kiswahili.</span></button></div>'+foot}
+const DAY=864e5,IV=[0,1,3,7,14];let FS;
+function fdue(){const n=Date.now();P.f=P.f||{};return Q.map((q,i)=>i).filter(i=>!P.f[i]||P.f[i].d<=n)}
+function flash(){const due=fdue(),f=P.f||{},m=Object.keys(f).filter(k=>f[k].b>=4).length;app.innerHTML='<button onclick="hub()">&larr; Study modes</button><div class="card"><h1>Flashcard Coach</h1><p class="mu">See the prompt, recall the answer, then rate yourself. Cards you miss come back sooner. Cards you know come back later. Progress stays on this device.</p><p><b>'+due.length+'</b> cards due now &middot; <b>'+m+'</b> of '+Q.length+' well remembered</p>'+(due.length?'<button class="pri" onclick="fstart()">Start review ('+Math.min(due.length,12)+' cards)</button>':'<p class="mu">Nothing due right now.</p><button class="pri" onclick="fstart(true)">Study ahead</button>')+'</div>'+foot}
+function fstart(a){FS={ids:sh(a?Q.map((q,i)=>i):fdue()).slice(0,12),i:0,n:0,ok:0};fcard()}
+function fcard(){if(FS.i>=FS.ids.length){app.innerHTML='<div class="card"><h1>Session done</h1><p>'+FS.ok+' of '+FS.n+' cards remembered.</p><p class="mu">Missed cards return in about 10 minutes. Hard cards tomorrow.</p><button class="pri" onclick="flash()">Back to Flashcards</button></div>'+foot;return}const q=Q[FS.ids[FS.i]];app.innerHTML='<div class="top"><span>Card '+(FS.i+1)+' of '+FS.ids.length+'</span><span>'+D[q[0]]+'</span></div><div class="bar"><i style="width:'+(FS.i/FS.ids.length*100)+'%"></i></div><div class="card"><h2>'+q[1]+'</h2><p class="mu">Say the answer to yourself first.</p><div id="fa"><button class="pri" onclick="freveal()">Reveal answer</button></div></div>'+foot}
+function freveal(){const id=FS.ids[FS.i],q=Q[id];document.getElementById("fa").innerHTML='<div class="why"><b>'+q[2][q[3]]+'</b><br>'+q[4]+'<br><span class="mu">Hint: '+HT(id)+'</span></div><button class="ok" onclick="frate(2)">Got it</button><button onclick="frate(1)">Hard</button><button class="no" onclick="frate(0)">Missed it</button>'}
+function frate(r){const id=FS.ids[FS.i];P.f=P.f||{};const c=P.f[id]||{b:0},n=Date.now();if(r==0){c.b=0;c.d=n+6e5}else if(r==1){c.b=Math.max(c.b,1);c.d=n+DAY}else{c.b=Math.min(c.b+1,4);c.d=n+IV[c.b]*DAY}P.f[id]=c;persist();FS.n++;if(r>0)FS.ok++;FS.i++;fcard()}
+const B=[
+["Cloud computing","Renting computing power, storage and software over the internet and paying for what you use, instead of buying and running your own servers.","A Nairobi shop moves its online store to the cloud. Before payday week it rents more capacity, afterwards it scales back, and it never buys a server.","Kutumia kompyuta, hifadhi na programu kupitia mtandao na kulipia unachotumia tu.","Cloud is more than storing files online. It includes computing, networking and services you can scale.",0],
+["Elasticity","The system grows and shrinks automatically as demand changes.","A mobile-money style service sees payment spikes on salary day. Capacity rises for the rush and drops afterwards, so you pay only for what is needed.","Mfumo hujiongeza au kupungua wenyewe kulingana na mahitaji.","Elasticity is automatic scaling. Agility is deploying quickly. High availability is staying up through failures.",0],
+["IaaS, PaaS and SaaS","Three levels of who manages what. The more the provider manages, the less you do.","IaaS is renting an empty plot and building everything yourself. PaaS is renting a furnished stall, so you just sell. SaaS is buying from a ready shop.","IaaS: unasimamia mfumo wa uendeshaji na programu; PaaS: unasimamia programu yako tu; SaaS: unatumia tu.","In IaaS the customer manages the OS. In PaaS and SaaS the provider does.",0],
+["Availability zones and region pairs","Zones are separate datacenters inside one region. A region pair links two regions far apart for disaster recovery.","A hospital app survives one building losing power because it runs across zones. A county portal backs up to a paired region in case a whole region fails.","Eneo la upatikanaji ni vituo tofauti vya data ndani ya eneo moja; jozi ya maeneo ni maeneo mawili ya mbali kwa uokoaji wa maafa.","Availability set: rack level. Zone: datacenter level. Region pair: whole region.",1],
+["Conditional Access vs RBAC","Conditional Access decides if and how you can sign in. RBAC decides what you can do after you are in.","A bank asks staff for MFA when they sign in from a new country (Conditional Access). A junior admin can restart VMs but not delete them (RBAC).","Conditional Access ni mlango (masharti ya kuingia); RBAC ni funguo (unachoruhusiwa kufanya ndani).","Door vs keys. They solve different problems and work together.",1],
+["VPN Gateway vs ExpressRoute","VPN Gateway sends encrypted traffic over the public internet. ExpressRoute is a private, dedicated connection.","A small branch office uses a VPN for a low-cost link. A large retailer moving lots of data daily chooses a private line for steadier performance.","VPN hupitisha data iliyosimbwa kwenye intaneti ya umma; ExpressRoute ni njia binafsi maalum.","Bastion connects a person to a VM. VPN and ExpressRoute connect networks.",1],
+["Azure Policy vs resource locks","Azure Policy enforces rules about what can be created. A resource lock stops accidental deletion or changes.","A university only allows resources in approved regions (Policy) and protects the student-records database from deletion (lock).","Policy huweka sheria za nini kinaruhusiwa kuundwa; kufuli hulinda rasilimali isifutwe kwa bahati mbaya.","Policy: what is allowed. RBAC: who can act. Lock: prevent deletion.",2],
+["The monitoring family","Azure Monitor collects metrics and logs. Service Health shows Azure-wide incidents. Resource Health shows your own resource. Advisor gives recommendations.","A startup sees slow checkout. Monitor shows the metrics, Resource Health checks one VM, and Service Health shows whether Azure has an incident.","Monitor hukusanya vipimo na kumbukumbu; Service Health huonyesha matatizo ya Azure; Advisor hutoa mapendekezo.","Service Health: Azure-wide. Resource Health: your resource. Advisor: advice, not live status.",2]
+];
+function buddy(){app.innerHTML='<button onclick="hub()">&larr; Study modes</button><div class="card"><h1>Study Buddy</h1><p class="mu">Plain-language explainers with real-life African examples and Kiswahili summaries. Written explainers, not live AI.</p>'+B.map((b,i)=>'<button onclick="bshow('+i+')">'+b[0]+'</button>').join("")+'</div>'+foot}
+function bshow(i){const b=B[i];app.innerHTML='<button onclick="buddy()">&larr; All concepts</button><div class="card"><h1>'+b[0]+'</h1><div class="why"><b>In simple words</b><br>'+b[1]+'</div><div class="why"><b>Real-life example</b><br>'+b[2]+'</div><div class="why"><b>Kiswahili</b><br>'+b[3]+'</div><div class="why"><b>Do not mix up</b><br>'+b[4]+'</div><button class="pri" onclick="start('+b[5]+')">Test me on this topic</button></div>'+foot}
+hub();
 </script></body></html>
