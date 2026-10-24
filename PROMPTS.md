@@ -46,3 +46,12 @@ Rules:
 
 ## What I'd do next
 Add a verification prompt that fact-checks each new question against the Microsoft Learn page for its topic, then a spaced-repetition scheduler for missed questions.
+
+## 6. Update: from one quiz to three ways to revise
+**Why:** many entries solve the same problem in the same way. I wanted a learner to choose how they revise, and a look that is recognisably mine.
+**Prompt pattern:** I described the three study modes (Smart Quiz, Flashcard Coach, Study Buddy), the visual constraints (white background, dark theme as an option, no gradients, earth-tone accent) and the rule to reuse the existing question bank, so no new unverified content was added.
+**What I learned from a comparison prompt:** a friend's much longer "master prompt" showed me a useful structure (non-negotiables first, phased build, acceptance tests). I borrowed the idea of stating non-negotiables and honesty rules up front, not the content.
+**Honesty constraints I wrote into the prompt:**
+- Study Buddy must be labelled as curated content, not live AI, until a real model is connected
+- No invented statistics or fake metrics
+- Keep the unofficial label and no Microsoft logos
